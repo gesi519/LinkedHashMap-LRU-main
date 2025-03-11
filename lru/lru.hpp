@@ -84,6 +84,7 @@ public:
 		delete tail;
 	}
 
+    class const_iterator;
 	class iterator{
 	public:
     	Node<T>* node = nullptr;
@@ -166,6 +167,98 @@ public:
 		bool operator!=(const iterator &rhs) const {
             return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
 		}
+        bool operator==(const const_iterator &rhs) const {
+            return (dou_lis==rhs.dou_lis&&node==rhs.node);
+        }
+		bool operator!=(const const_iterator &rhs) const {
+            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+        }
+	};
+    class const_iterator {
+	public:
+        Node<T>* node = nullptr;
+        double_list* dou_lis = nullptr;
+    // --------------------------   
+		const_iterator() {
+		}
+		const_iterator(const iterator &t) : node(t.node),dou_lis(t.dou_lis) {
+		}
+        ~const_iterator() {
+            node = nullptr;
+            dou_lis = nullptr;
+        }
+		/**
+		 * iter++
+		 */
+		const_iterator operator++(int) {
+            if(node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            iterator it = *this;
+            node = node->behind;
+            retrun it; 
+        }
+		/**
+		 * ++iter
+		 */
+		const_iterator &operator++() {
+            if(node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            node = node->behind;
+            retrun *this; 
+        }
+		/**
+		 * iter--
+		 */
+		const_iterator operator--(int) {
+            if(node == dou_lis->head->behind) {
+                throw("segmentation fault");
+            }
+            iterator it = *this;
+            node = node->front;
+            retrun it; 
+        }
+		/**
+		 * --iter
+		 */
+		const_iterator &operator--() {
+            if(node == dou_lis->head->behind) {
+                throw("segmentation fault");
+            }
+            node = node->front;
+            retrun *this; 
+        }
+
+		/**
+		 * if the iter didn't point to a value
+		 * throw 
+		*/
+		const value_type &operator*() const {
+            if(node == nullptr||node == dou_lis->head||node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            return *(node->val);
+		}
+		const value_type *operator->() const noexcept {
+            return node->val;
+		}
+
+		/**
+		 * operator to check whether two iterators are same (pointing to the same memory).
+		 */
+		bool operator==(const iterator &rhs) const {
+            return (dou_lis==rhs.dou_lis&&node==rhs.node);
+        }
+		bool operator!=(const iterator &rhs) const {
+            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+        }
+		bool operator==(const const_iterator &rhs) const {
+            return (dou_lis==rhs.dou_lis&&node==rhs.node);
+        }
+		bool operator!=(const const_iterator &rhs) const {
+            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+        }
 	};
 	/**
 	 * return an iterator to the beginning
@@ -415,6 +508,7 @@ template<
 	class Equal = std::equal_to<Key>
 > class linked_hashmap :public hashmap<Key,T,Hash,Equal>{
 public:
+    // 为什么我感觉这个继承没有什么用呢
 	typedef pair<const Key, T> value_type;
     //using value_type = pair<const Key, T>;
 	/*
@@ -423,105 +517,12 @@ public:
 	and using can use for template
 	The syntax structure of using can be simpler
 	*/
-    class iterator;
     
+    double_list<value_type> list;
+    hashmap<Key,iterator,Hash,Equal> hash_map_iterator;
+
 // --------------------------
-	class const_iterator;
-	class iterator{
-	public:
-    	/**
-         * elements
-         * add whatever you want
-        */
-    // --------------------------
-		iterator(){
-		}
-		iterator(const iterator &other){
-		}
-		~iterator(){
-		}
-
-		/**
-		 * iter++
-		 */
-		iterator operator++(int) {}
-		/**
-		 * ++iter
-		 */
-		iterator &operator++() {}
-		/**
-		 * iter--
-		 */
-		iterator operator--(int) {}
-		/**
-		 * --iter
-		 */
-		iterator &operator--() {}
-
-		/**
-		 * if the iter didn't point to a value
-		 * throw "star invalid"
-		*/
-		value_type &operator*() const {
-		}
-		value_type *operator->() const noexcept {
-		}
-
-		/**
-		 * operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-		bool operator==(const const_iterator &rhs) const {}
-		bool operator!=(const const_iterator &rhs) const {}
-	};
- 
-	class const_iterator {
-		public:
-        	/**
-             * elements
-             * add whatever you want
-            */
-    // --------------------------   
-		const_iterator() {
-		}
-		const_iterator(const iterator &other) {
-		}
-
-		/**
-		 * iter++
-		 */
-		const_iterator operator++(int) {}
-		/**
-		 * ++iter
-		 */
-		const_iterator &operator++() {}
-		/**
-		 * iter--
-		 */
-		const_iterator operator--(int) {}
-		/**
-		 * --iter
-		 */
-		const_iterator &operator--() {}
-
-		/**
-		 * if the iter didn't point to a value
-		 * throw 
-		*/
-		const value_type &operator*() const {
-		}
-		const value_type *operator->() const noexcept {
-		}
-
-		/**
-		 * operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-		bool operator==(const const_iterator &rhs) const {}
-		bool operator!=(const const_iterator &rhs) const {}
-	};
+	
  
 	linked_hashmap() {
 	}
