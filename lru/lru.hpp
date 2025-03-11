@@ -5,6 +5,7 @@
 #include "exceptions.hpp"
 #include "class-integer.hpp"
 #include "class-matrix.hpp"
+#include <vector>
 class Hash {
 public:
 	unsigned int operator () (Integer lhs) const {
@@ -43,7 +44,7 @@ public:
 
 // --------------------------
 	//初始化的默认构造
-	void Default_Construction() {
+	void initialize() {
 		head = new Node<T>();
 		tail = new Node<T>();
 		head->behind = tail;
@@ -57,10 +58,10 @@ public:
 	}
 
 	double_list() {
-		Default_Construction();
+		initialize();
 	}
 	double_list(const double_list<T> &other) {
-		Default_Construction()
+		initialize()
 		for(auto it = other.begin();it != other.end();++it) {
             insert_tail(*it);
         }
@@ -251,7 +252,8 @@ public:
 	
     size_t capacity = 16;
 	size_t current_Size = 0; 
-    double load_factor = 1.1;
+    double load_factor = 0.75;
+    std::vector<double_list<value_type>> hash_map;
 	// Hash function
     Hash hash_fn;
 	Equal eq_fn;
@@ -262,68 +264,108 @@ public:
 	 * the follows are constructors and destructors
 	 * you can also add some if needed.
 	*/
-	hashmap() {
+	hashmap() : hash_map(capacity) {
 	}
-	hashmap(const hashmap &other){
+	hashmap(const hashmap &other) : capacity(other.capacity),current_Size(other.current_Size),
+							load_factor(other.load_factor),hash_map(other.hash_map),hash_fn(other.hash_fn),eq_fn(other.eq_fn) {
 	}
-	~hashmap(){
-	}
-	hashmap & operator=(const hashmap &other){
+    
+	~hashmap() {}
+	hashmap & operator=(const hashmap &other) {
+        if(this != &other) {
+            clear();
+			capacity = other.capacity;
+			current_Size = other.current_Size;
+			load_factor = other.load_factor;
+			hash_map = other.hash_map;
+			hash_fn = other.hash_fn;
+			eq_fn = other.eq_fn;
+		}
+		return *this;
 	}
 
 	class iterator{
 	public:
-    	/**
-         * elements
-         * add whatever you want
-        */
+        value_type* ptr = nullptr;
 // --------------------------
         /**
          * the follows are constructors and destructors
          * you can also add some if needed.
         */
-		iterator(){
+		iterator() {
 		}
-		iterator(const iterator &t){
+		iterator(const iterator &t) : ptr(t.ptr) {
 		}
-		~iterator(){}
+		~iterator() {
+            ptr = nullptr;
+        }
 
         /**
 		 * if point to nothing
 		 * throw 
 		*/
 		value_type &operator*() const {
+            if(ptr == nullptr) throw("point to nothing");
+            return *ptr;
 		}
 
         /**
 		 * other operation
 		*/
 		value_type *operator->() const noexcept {
+            return ptr;
 		}
 		bool operator==(const iterator &rhs) const {
+            return ptr == rhs.ptr;
     	}
 		bool operator!=(const iterator &rhs) const {
+            return ptr != rhs.ptr;
 		}
 	};
 
-	void clear(){
+	void clear() {
+        capacity = 16;
+        current_Size = 0;
+        for(int i=0;i<hash_map.size();++i) {
+            hash_map[i].clear();
+        }
+        hash_map.resize(capacity);
 	}
 	/**
 	 * you need to expand the hashmap dynamically
 	*/
-	void expand(){
+	void expand() {
+        int new_capcity = capacity*2;
+        std::vector<double_list<value_type>> new_hash_map = std::move(hash_map);
+        hash_map.resize(new_capcity);
+        for(int i=0;i<capacity;++i) {
+            for(auto it = new_hash_map[i].begin();it!=new_hash_map[i].end();++it) {
+                hash_map[hash_fn((*it).first)].insert_tail(*it);
+            }
+        }
 	}
 
     /**
      * the iterator point at nothing
     */
-	iterator end() const{
+	iterator end() const {
+        iterator it;
+        return it;
 	}
 	/**
 	 * find, return a pointer point to the value
 	 * not find, return the end (point to nothing)
 	*/
-	iterator find(const Key &key)const{
+	iterator find(const Key &key)const {
+        size_t pos = hash_fn(key)%capacity;
+        for(auto it = hash_map[pos].begin();it!=hash_map[pos].end();++it) {
+            if(eq_fn((*it).first,key)) {
+                iterator it_;
+                it_.ptr = &(*it);
+                return it_;
+            }
+        }
+        return end();
 	}
 	/**
 	 * already have a value_pair with the same key
@@ -331,13 +373,38 @@ public:
 	 * not find a value_pair with the same key
 	 * -> insert the value_pair, return true
 	*/
-	sjtu::pair<iterator,bool> insert(const value_type &value_pair){
+	sjtu::pair<iterator,bool> insert(const value_type &value_pair) {
+        if(current_Size>=capacity*load_factor) {
+            expand();
+        }
+        auto it = find(value_pair.first);
+        if(it == end()) {
+            hash_map[hash_fn(value_pair.first)%capacity].insert_head(value_pair);
+            it = &(*(hash_map[hash_fn(value_pair.first)%capacity].begin()));
+            ++current_Size;
+            return sjtu::pair<iterator,bool>{it,true};
+        }
+        (*it).second = value_pair.second;
+        return sjtu::pair<iterator,bool>{it,false};
 	}
 	/**
 	 * the value_pair exists, remove and return true
 	 * otherwise, return false
 	*/
-	bool remove(const Key &key){
+	bool remove(const Key &key) {
+        auto it = find(key);
+        if(it==end()) {
+            return false;
+        }
+        size_t pos = hash_fn(key)%capacity;
+        for(auto it_ = hash_map[pos].begin();it_!=hash_map[pos].end();++it) {
+            if(eq_fn((*it_).first,key)) {
+                hash_map[pos].erase(it_);
+                --current_Size;
+                return true;
+            }
+        }
+        return true;
 	}
 };
 
@@ -349,10 +416,15 @@ template<
 > class linked_hashmap :public hashmap<Key,T,Hash,Equal>{
 public:
 	typedef pair<const Key, T> value_type;
-	/**
-	 * elements
-	 * add whatever you want
+    //using value_type = pair<const Key, T>;
+	/*
+	as contrary
+	using is more morden
+	and using can use for template
+	The syntax structure of using can be simpler
 	*/
+    class iterator;
+    
 // --------------------------
 	class const_iterator;
 	class iterator{
