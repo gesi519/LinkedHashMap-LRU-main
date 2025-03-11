@@ -20,87 +20,168 @@ public:
 };
 
 namespace sjtu {
+
+/*
+这是double_list中每一个节点的定义，包括需要的构造函数
+*/
+template<class T> class Node {
+	T* val = nullptr;/* 无法确定T类型是否有默认构造函数 */
+	Node* front = nullptr;
+	Node* behind = nullptr;
+	Node() {}
+	Node(Node* _front,Node* _behind) : front(_front),behind(_behind) {}
+	Node(T* _val,Node* _front,Node* _behind) : val(_val),front(_front),behind(_behind) {}
+};
+
 template<class T> class double_list{
 public:
-	/**
-	 * elements
-	 * add whatever you want
-	*/
+	class iterator;
+
+	Node<T>* head;
+	Node<T>* tail;
+	size_t count = 0;
 
 // --------------------------
-	/**
-	 * the follows are constructors and destructors
-	 * you can also add some if needed.
-	*/
-	double_list(){
+	//初始化的默认构造
+	void Default_Construction() {
+		head = new Node<T>();
+		tail = new Node<T>();
+		head->behind = tail;
+		tail->front = head; 
 	}
-	double_list(const double_list<T> &other){
+	//析构的基本步骤和=重载的基本前提清理
+	void clear() {
+		while(!empty()) {
+			delete_head();
+		}
 	}
-	~double_list(){
+
+	double_list() {
+		Default_Construction();
+	}
+	double_list(const double_list<T> &other) {
+		Default_Construction()
+		for(auto it = other.begin();it != other.end();++it) {
+            insert_tail(*it);
+        }
+	}
+    // = 重载 为了之后linked_hashmap的=重载和拷贝构造
+    double_list& operator=(const double_list<T> &other) {
+		if(this != &other) {
+			clear();
+			for(auto it = other.begin();it != other.end();++it) {
+                insert_tail(*it);
+            }
+		}
+		return *this;
+	}
+	~double_list() {
+		clear();
+		tail->front = nullptr;
+		head->behind = nullptr;
+		delete head;
+		delete tail;
 	}
 
 	class iterator{
 	public:
-    	/**
-		 * elements
-		 * add whatever you want
-		*/
+    	Node<T>* node = nullptr;
+        double_list* dou_lis = nullptr;
 	    // --------------------------
         /**
 		 * the follows are constructors and destructors
 		 * you can also add some if needed.
 		*/
 		iterator(){}
-		iterator(const iterator &t){
+		iterator(const iterator &t) : node(t.node),dou_lis(t.dou_lis){
 		}
-		~iterator(){}
+        iterator(Node<T>* t,double_list* d) : node(t),dou_lis(d) {
+        }
+		~iterator() {
+            node = nullptr;
+            dou_lis = nullptr;
+        }
         /**
 		 * iter++
 		 */
 		iterator operator++(int) {
+            if(node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            iterator it = *this;
+            node = node->behind;
+            retrun it; 
 		}
         /**
 		 * ++iter
 		 */
 		iterator &operator++() {
+            if(node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            node = node->behind;
+            retrun *this; 
 		}
         /**
 		 * iter--
 		 */
 		iterator operator--(int) {
+            if(node == dou_lis->head->behind) {
+                throw("segmentation fault");
+            }
+            iterator it = *this;
+            node = node->front;
+            retrun it; 
 		}
         /**
 		 * --iter
 		 */
 		iterator &operator--() {
+            if(node == dou_lis->head->behind) {
+                throw("segmentation fault");
+            }
+            node = node->front;
+            retrun *this; 
 		}
 		/**
 		 * if the iter didn't point to a value
 		 * throw " invalid"
 		*/
 		T &operator*() const {
+            if(node == nullptr||node == dou_lis->head||node == dou_lis->tail) {
+                throw("segmentation fault");
+            }
+            return *(node->val);
 		}
         /**
          * other operation
         */
 		T *operator->() const noexcept {
+            return node->val;
 		}
 		bool operator==(const iterator &rhs) const {
+            return (dou_lis==rhs.dou_lis&&node==rhs.node);
     	}
 		bool operator!=(const iterator &rhs) const {
+            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
 		}
 	};
 	/**
 	 * return an iterator to the beginning
 	 */
-	iterator begin(){
+	iterator begin() const{
+        iterator it(head,this);
+        ++it;
+        return it;
 	}
 	/**
 	 * return an iterator to the ending
 	 * in fact, it returns the iterator point to nothing,
 	 * just after the last element.
 	 */
-	iterator end(){
+	iterator end() const{
+        iterator it(tail,this);
+        return it;
 	}
 	/**
 	 * if the iter didn't point to anything, do nothing,
@@ -113,25 +194,49 @@ public:
 	 *  or nothing if the list after the operation
 	 *  don't contain 2nd elememt.
 	*/
-	iterator erase(iterator pos){
+	iterator erase(iterator pos) {
+        if(pos.dou_lis != this||pos.node == nullptr || pos.node == head || pos.node == tail) return pos;
+        Node<T>* now = pos.node;
+        Node<T>* now_front = now->front;
+        Node<T>* now_behind = now->behind;
+        now_front->behind = now_behind;
+        now_behind->front = now_front;
+        delete now->val;
+        delete now;
+        --count;
+        pos.node = now_behind;
+        return pos;
 	}
 
 	/**
 	 * the following are operations of double list
 	*/
-	void insert_head(const T &val){
+	void insert_head(const T &val) {
+        Node<T>* tmp_node = new Node<T>(new T(val),head,head->behind);
+        head->behind = tmp_node;
+        tmp_node->behind->front = tmp_node;
+        ++count;
 	}
-	void insert_tail(const T &val){
+	void insert_tail(const T &val) {
+        Node<T>* tmp_node = new Node<T>(new T(val),tail->front,tail);
+        tail->front = tmp_node;
+        tmp_node->front->behind = tmp_node;
+        ++count
 	}
-	void delete_head(){
+	void delete_head() {
+        erase(begin());
 	}
-	void delete_tail(){
+	void delete_tail() {
+        iterator it = end();
+        --it;
+        erase(it);
 	}
 	/**
 	 * if didn't contain anything, return true, 
 	 * otherwise false.
 	 */
-	bool empty(){
+	bool empty() {
+        return count == 0;
 	}
 };
 
@@ -143,10 +248,13 @@ template<
 > class hashmap{
 public:
 	using value_type = pair<const Key, T>;
-	/**
-	 * elements
-	 * add whatever you want
-	*/
+	
+    size_t capacity = 16;
+	size_t current_Size = 0; 
+    double load_factor = 1.1;
+	// Hash function
+    Hash hash_fn;
+	Equal eq_fn;
 
 // --------------------------
 
