@@ -6,6 +6,7 @@
 #include "class-integer.hpp"
 #include "class-matrix.hpp"
 #include <vector>
+#include <iostream>
 class Hash {
 public:
 	unsigned int operator () (Integer lhs) const {
@@ -641,15 +642,19 @@ public:
         for(auto it = hash_map_iterator.hash_map[pos].begin();it!=hash_map_iterator.hash_map[pos].end();++it) {
             if(hash_map_iterator.eq_fn((*it).first,value.first)) {
                 list.erase((*it).second);
-                list.insert_head(value);
-                (*it).second = list.begin();
+                list.insert_tail(value);
+				auto it_ = list.end();
+				--it_;
+                (*it).second = it_;
                 return pair<iterator, bool>{(*it).second,false};
             }
         }
-        list.insert_head(value);
-        hash_map_iterator.hash_map[pos].insert_head({value.first,list.begin()});
+        list.insert_tail(value);
+		auto it_ = list.end();
+		--it_;
+        hash_map_iterator.hash_map[pos].insert_head({value.first,it_});
 		hash_map_iterator.current_Size++;
-        return pair<iterator, bool>{list.begin(),true};
+        return pair<iterator, bool>{it_,true};
 	}
  	/**
 	 * erase the value_pair pointed by the iterator
@@ -707,8 +712,8 @@ public:
             return ;
         }
         if(mem->size() == capacity) {
-            auto it = mem->end();
-            mem->remove(--it);
+            auto it = mem->begin();
+            mem->remove(it);
             mem->insert(v);
             return ;
         }
