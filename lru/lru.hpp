@@ -26,6 +26,7 @@ namespace sjtu {
 这是double_list中每一个节点的定义，包括需要的构造函数
 */
 template<class T> class Node {
+public:
 	T* val = nullptr;/* 无法确定T类型是否有默认构造函数 */
 	Node* front = nullptr;
 	Node* behind = nullptr;
@@ -61,7 +62,7 @@ public:
 		initialize();
 	}
 	double_list(const double_list<T> &other) {
-		initialize()
+		initialize();
 		for(auto it = other.begin();it != other.end();++it) {
             insert_tail(*it);
         }
@@ -88,7 +89,7 @@ public:
 	class iterator{
 	public:
     	Node<T>* node = nullptr;
-        double_list* dou_lis = nullptr;
+        const double_list* dou_lis = nullptr;
 	    // --------------------------
         /**
 		 * the follows are constructors and destructors
@@ -112,7 +113,7 @@ public:
             }
             iterator it = *this;
             node = node->behind;
-            retrun it; 
+            return it; 
 		}
         /**
 		 * ++iter
@@ -122,7 +123,7 @@ public:
                 throw("segmentation fault");
             }
             node = node->behind;
-            retrun *this; 
+            return *this; 
 		}
         /**
 		 * iter--
@@ -133,7 +134,7 @@ public:
             }
             iterator it = *this;
             node = node->front;
-            retrun it; 
+            return it; 
 		}
         /**
 		 * --iter
@@ -143,7 +144,7 @@ public:
                 throw("segmentation fault");
             }
             node = node->front;
-            retrun *this; 
+            return *this; 
 		}
 		/**
 		 * if the iter didn't point to a value
@@ -165,19 +166,19 @@ public:
             return (dou_lis==rhs.dou_lis&&node==rhs.node);
     	}
 		bool operator!=(const iterator &rhs) const {
-            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+            return (dou_lis!=rhs.dou_lis||node!=rhs.node);
 		}
         bool operator==(const const_iterator &rhs) const {
             return (dou_lis==rhs.dou_lis&&node==rhs.node);
         }
 		bool operator!=(const const_iterator &rhs) const {
-            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+            return (dou_lis!=rhs.dou_lis||node!=rhs.node);
         }
 	};
     class const_iterator {
 	public:
         Node<T>* node = nullptr;
-        double_list* dou_lis = nullptr;
+        const double_list* dou_lis = nullptr;
     // --------------------------   
 		const_iterator() {
 		}
@@ -194,9 +195,9 @@ public:
             if(node == dou_lis->tail) {
                 throw("segmentation fault");
             }
-            iterator it = *this;
+            const_iterator it = *this;
             node = node->behind;
-            retrun it; 
+            return it; 
         }
 		/**
 		 * ++iter
@@ -206,7 +207,7 @@ public:
                 throw("segmentation fault");
             }
             node = node->behind;
-            retrun *this; 
+            return *this; 
         }
 		/**
 		 * iter--
@@ -215,9 +216,9 @@ public:
             if(node == dou_lis->head->behind) {
                 throw("segmentation fault");
             }
-            iterator it = *this;
+            const_iterator it = *this;
             node = node->front;
-            retrun it; 
+            return it; 
         }
 		/**
 		 * --iter
@@ -227,20 +228,20 @@ public:
                 throw("segmentation fault");
             }
             node = node->front;
-            retrun *this; 
+            return *this; 
         }
 
 		/**
 		 * if the iter didn't point to a value
 		 * throw 
 		*/
-		const value_type &operator*() const {
+		const T &operator*() const {
             if(node == nullptr||node == dou_lis->head||node == dou_lis->tail) {
                 throw("segmentation fault");
             }
             return *(node->val);
 		}
-		const value_type *operator->() const noexcept {
+		const T *operator->() const noexcept {
             return node->val;
 		}
 
@@ -251,21 +252,28 @@ public:
             return (dou_lis==rhs.dou_lis&&node==rhs.node);
         }
 		bool operator!=(const iterator &rhs) const {
-            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+            return (dou_lis!=rhs.dou_lis||node!=rhs.node);
         }
 		bool operator==(const const_iterator &rhs) const {
             return (dou_lis==rhs.dou_lis&&node==rhs.node);
         }
 		bool operator!=(const const_iterator &rhs) const {
-            return (dou_lis!=rhs.dou_lis&&node!=rhs.node);
+            return (dou_lis!=rhs.dou_lis||node!=rhs.node);
         }
 	};
 	/**
 	 * return an iterator to the beginning
 	 */
 	iterator begin() const{
-        iterator it(head,this);
-        ++it;
+        iterator it;
+        it.dou_lis = this;
+        it.node = head->behind;
+        return it;
+	}
+    const_iterator cbegin() const{
+        const_iterator it;
+		it.dou_lis = this;
+		it.node = head->behind;
         return it;
 	}
 	/**
@@ -274,7 +282,15 @@ public:
 	 * just after the last element.
 	 */
 	iterator end() const{
-        iterator it(tail,this);
+        iterator it;
+        it.dou_lis = this;
+        it.node = tail;
+        return it;
+	}
+    const_iterator cend() const{
+        const_iterator it;
+		it.dou_lis = this;
+		it.node = tail;
         return it;
 	}
 	/**
@@ -289,7 +305,7 @@ public:
 	 *  don't contain 2nd elememt.
 	*/
 	iterator erase(iterator pos) {
-        if(pos.dou_lis != this||pos.node == nullptr || pos.node == head || pos.node == tail) return pos;
+        if(pos.dou_lis != this||pos.node == nullptr || pos.node == head || pos.node == tail) return end();
         Node<T>* now = pos.node;
         Node<T>* now_front = now->front;
         Node<T>* now_behind = now->behind;
@@ -315,7 +331,7 @@ public:
         Node<T>* tmp_node = new Node<T>(new T(val),tail->front,tail);
         tail->front = tmp_node;
         tmp_node->front->behind = tmp_node;
-        ++count
+        ++count;
 	}
 	void delete_head() {
         erase(begin());
@@ -429,13 +445,15 @@ public:
 	*/
 	void expand() {
         int new_capcity = capacity*2;
-        std::vector<double_list<value_type>> new_hash_map = std::move(hash_map);
-        hash_map.resize(new_capcity);
+        std::vector<double_list<value_type>> new_hash_map(new_capcity);
         for(int i=0;i<capacity;++i) {
-            for(auto it = new_hash_map[i].begin();it!=new_hash_map[i].end();++it) {
-                hash_map[hash_fn((*it).first)].insert_tail(*it);
+            for(auto it = hash_map[i].begin();it!=hash_map[i].end();++it) {
+                size_t pos = hash_fn((*it).first) % new_capcity;
+				new_hash_map[pos].insert_tail(*it);
             }
         }
+		new_hash_map.swap(hash_map);
+		capacity = new_capcity;
 	}
 
     /**
@@ -472,8 +490,9 @@ public:
         }
         auto it = find(value_pair.first);
         if(it == end()) {
-            hash_map[hash_fn(value_pair.first)%capacity].insert_head(value_pair);
-            it = &(*(hash_map[hash_fn(value_pair.first)%capacity].begin()));
+			size_t pos = hash_fn(value_pair.first)%capacity;
+            hash_map[pos].insert_head(value_pair);
+            it.ptr = (&(*(hash_map[pos].begin())));
             ++current_Size;
             return sjtu::pair<iterator,bool>{it,true};
         }
@@ -485,19 +504,15 @@ public:
 	 * otherwise, return false
 	*/
 	bool remove(const Key &key) {
-        auto it = find(key);
-        if(it==end()) {
-            return false;
-        }
         size_t pos = hash_fn(key)%capacity;
-        for(auto it_ = hash_map[pos].begin();it_!=hash_map[pos].end();++it) {
+        for(auto it_ = hash_map[pos].begin();it_!=hash_map[pos].end();++it_) {
             if(eq_fn((*it_).first,key)) {
                 hash_map[pos].erase(it_);
                 --current_Size;
                 return true;
             }
         }
-        return true;
+        return false;
 	}
 };
 
@@ -506,7 +521,7 @@ template<
 	class T,
 	class Hash = std::hash<Key>, 
 	class Equal = std::equal_to<Key>
-> class linked_hashmap :public hashmap<Key,T,Hash,Equal>{
+> class linked_hashmap {
 public:
     // 为什么我感觉这个继承没有什么用呢
 	typedef pair<const Key, T> value_type;
@@ -517,7 +532,8 @@ public:
 	and using can use for template
 	The syntax structure of using can be simpler
 	*/
-    
+    using iterator = typename double_list<value_type>::iterator;
+    using const_iterator = typename double_list<value_type>::const_iterator;
     double_list<value_type> list;
     hashmap<Key,iterator,Hash,Equal> hash_map_iterator;
 
@@ -526,11 +542,17 @@ public:
  
 	linked_hashmap() {
 	}
-	linked_hashmap(const linked_hashmap &other){
+	linked_hashmap(const linked_hashmap &other) : list(other.list),hash_map_iterator(other.hash_map_iterator) {
 	}
 	~linked_hashmap() {
 	}
 	linked_hashmap & operator=(const linked_hashmap &other) {
+        if(this != &other) {
+			list.clear();
+			list = other.list;
+			hash_map_iterator.operator=(other.hash_map_iterator);
+		}
+		return *this;
 	}
 
  	/**
@@ -538,40 +560,68 @@ public:
 	 * if the key not found, throw 
 	*/
 	T & at(const Key &key) {
+        auto it = hash_map_iterator.find(key);
+        if(it == hash_map_iterator.end()) {
+            throw("not found");
+        }
+        return  (it->second)->second;
 	}
 	const T & at(const Key &key) const {
+        auto it = hash_map_iterator.find(key);
+        if(it == hash_map_iterator.end()) {
+            throw("not found");
+        }
+        return  (it->second)->second;
 	}
 	T & operator[](const Key &key) {
+        auto it = hash_map_iterator.find(key);
+        if(it == hash_map_iterator.end()) {
+            throw("not found");
+        }
+        return  (it->second)->second;
 	}
 	const T & operator[](const Key &key) const {
+        auto it = hash_map_iterator.find(key);
+        if(it == hash_map_iterator.end()) {
+            throw("not found");
+        }
+        return  (it->second)->second;
 	}
 
 	/**
 	 * return an iterator point to the first 
 	 * inserted and existed element
 	 */
-	iterator begin() {
+	iterator begin() const{
+        return list.begin();
 	}
 	const_iterator cbegin() const {
+        return list.cbegin();
 	}
     /**
 	 * return an iterator after the last inserted element
 	 */
-	iterator end() {
+	iterator end() const{
+        return list.end();
 	}
 	const_iterator cend() const {
+        return list.cend();
 	}
   	/**
 	 * if didn't contain anything, return true, 
 	 * otherwise false.
 	 */
 	bool empty() const {
+        return hash_map_iterator.current_Size == 0;
 	}
 
-    void clear(){
+    void clear() {
+        hash_map_iterator.clear();
+        list.clear();
 	}
 
 	size_t size() const {
+        return hash_map_iterator.current_Size;
 	}
  	/**
 	 * insert the value_piar
@@ -584,6 +634,22 @@ public:
 	 * add a new element and return true
 	*/
 	pair<iterator, bool> insert(const value_type &value) {
+        if(hash_map_iterator.current_Size>=hash_map_iterator.capacity*hash_map_iterator.load_factor) {
+            hash_map_iterator.expand();
+        }
+        size_t pos = hash_map_iterator.hash_fn(value.first)%(hash_map_iterator.capacity);
+        for(auto it = hash_map_iterator.hash_map[pos].begin();it!=hash_map_iterator.hash_map[pos].end();++it) {
+            if(hash_map_iterator.eq_fn((*it).first,value.first)) {
+                list.erase((*it).second);
+                list.insert_head(value);
+                (*it).second = list.begin();
+                return pair<iterator, bool>{(*it).second,false};
+            }
+        }
+        list.insert_head(value);
+        hash_map_iterator.hash_map[pos].insert_head({value.first,list.begin()});
+		hash_map_iterator.current_Size++;
+        return pair<iterator, bool>{list.begin(),true};
 	}
  	/**
 	 * erase the value_pair pointed by the iterator
@@ -591,12 +657,16 @@ public:
 	 * throw 
 	*/
 	void remove(iterator pos) {
+        value_type va_ty = *pos;
+        list.erase(pos);
+        hash_map_iterator.remove(va_ty.first);
 	}
 	/**
 	 * return how many value_pairs consist of key
 	 * this should only return 0 or 1
 	*/
 	size_t count(const Key &key) const {
+        return (hash_map_iterator.find(key) == hash_map_iterator.end()?0:1);
 	}
 	/**
 	 * find the iterator points at the value_pair
@@ -604,7 +674,12 @@ public:
 	 * if not find, return the iterator 
 	 * point at nothing
 	*/
-	iterator find(const Key &key) {
+	iterator find(const Key &key) const {
+        auto it = hash_map_iterator.find(key);
+        if(it == hash_map_iterator.end()) {
+            return end();
+        }
+        return (*it).second;
 	}
 
 };
@@ -613,20 +688,44 @@ class lru{
     using lmap = sjtu::linked_hashmap<Integer,Matrix<int>,Hash,Equal>;
     using value_type = sjtu::pair<const Integer, Matrix<int> >;
 public:
-    lru(int size){
+    lmap* mem;
+    size_t capacity = 0;
+    lru(int size) : capacity(size){
+        mem = new lmap();
     }
-    ~lru(){
+    ~lru() {
+        delete mem;
+        mem = nullptr;
     }
     /**
      * save the value_pair in the memory
      * delete something in the memory if necessary
     */
     void save(const value_type &v) const{
+        if(mem->find(v.first)!=mem->end()) {
+            mem->insert(v);
+            return ;
+        }
+        if(mem->size() == capacity) {
+            auto it = mem->end();
+            mem->remove(--it);
+            mem->insert(v);
+            return ;
+        }
+        mem->insert(v);
     }
     /**
      * return a pointer contain the value
     */
-    Matrix<int>* get(const Integer &v) const{
+    Matrix<int>* get(const Integer &v) /*const*/{
+        typename sjtu::linked_hashmap<Integer,Matrix<int>,Hash,Equal>::iterator it = mem->find(v);
+        if(it!=mem->end()) {
+            Matrix<int> matrix = it.node->val->second;
+            mem->remove(it);
+            mem->insert(value_type(v,matrix));
+            return &(mem->find(v).node->val->second);
+        }
+        return nullptr;
     }
     /**
      * just print everything in the memory
@@ -634,7 +733,11 @@ public:
      * this operation follows the order, but don't
      * change the order.
     */
-    void print(){
+    void print() {
+        typename sjtu::linked_hashmap<Integer,Matrix<int>,Hash,Equal>::iterator it ;
+        for (it=mem->begin();it!=mem->end();it++) {
+            std::cout<<(*it).first.val<<" "<<(*it).second<<std::endl;
+        }
     }
 };
 }
